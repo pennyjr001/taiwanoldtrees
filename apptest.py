@@ -175,39 +175,44 @@ else:
                         import time
                         from selenium import webdriver
                         from selenium.webdriver.chrome.service import Service
-                        from webdriver_manager.chrome import ChromeDriverManager
                         
-                        # 1. 將目前的 Folium 地圖存成暫存的 HTML 檔案
                         tmp_html = "temp_map.html"
                         m.save(tmp_html)
                         
-                        # 2. 設定 Chrome 無頭瀏覽器 (不顯示視窗)
                         options = webdriver.ChromeOptions()
                         options.add_argument('--headless') # 背景執行
                         options.add_argument('--no-sandbox')
                         options.add_argument('--disable-dev-shm-usage')
-                        # 設定瀏覽器視窗大小，這會決定截圖出來的解析度大小！
                         options.add_argument(f'--window-size={img_width},{img_height}')
-                        
-                        # 3. 啟動 Chrome
-                        service = Service(ChromeDriverManager().install())
+
+                        # ── 👑 雲端 Linux 與 本地 Windows 環境自動雙棲適配 ──
+                        # 檢查是否在 Streamlit Cloud (Linux) 運作，且有系統自帶的 Chromium
+                        if os.path.exists("/usr/bin/chromium"):
+                            options.binary_location = "/usr/bin/chromium"
+
+                        if os.path.exists("/usr/bin/chromedriver"):
+                            # 雲端直接使用 packages.txt 裝好的系統驅動
+                            service = Service("/usr/bin/chromedriver")
+
+                        else:
+                            # 如果在自己電腦 (Windows)，才動態載入 webdriver-manager
+                            from webdriver_manager.chrome import ChromeDriverManager
+                            service = Service(ChromeDriverManager().install())
+
+                        # 啟動瀏覽器
                         driver = webdriver.Chrome(service=service, options=options)
-                        
-                        # 4. 打開地圖檔案並等待 JavaScript 渲染完成
+
                         abs_path = os.path.abspath(tmp_html)
                         driver.get(f"file:///{abs_path}")
-                        time.sleep(3) # 留 3 秒給地圖動畫與點位載入
-                        
-                        # 5. 進行截圖並儲存至 Session 記憶體
+                        time.sleep(4) # 給雲端多一點緩衝時間載入 OSM 地圖 tiles
+
                         img_path = "map_output.png"
                         driver.save_screenshot(img_path)
-                        
-                        # 關閉瀏覽器與刪除暫存檔
                         driver.quit()
+
                         if os.path.exists(tmp_html):
                             os.remove(tmp_html)
                             
-                        # 讀取圖片二進位資料供下載按鈕使用
                         with open(img_path, "rb") as file:
                             st.session_state.map_img_bytes = file.read()
                             
@@ -218,6 +223,10 @@ else:
                         
                     except Exception as e:
                         st.error(f"❌ 產生圖片失敗，錯誤訊息: {e}")
+                        
+                        # 3. 啟動 Chrome
+                        service = Service(ChromeDriverManager().install())
+                        driver = webdriver.Chrome(service=service, options=options)
             
             # 如果記憶體中有成功產生的圖片，顯示真正的下載按鈕
             if "map_img_bytes" in st.session_state:

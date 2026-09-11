@@ -143,10 +143,17 @@ else:
             # ... 這裡省略你原本寫的點位 for 迴圈 (請保留你原本的點位程式碼) ...
             for idx, row in df_filtered.iterrows():
                 label_val = str(row[chosen_id_col]) if chosen_id_col else str(idx + 1)
-                folium.CircleMarker(
-                    location=[row['LAT'], row['LNG']], radius=6, color="#43A047", fill=True,
-                    tooltip=folium.Tooltip(label_val)
-                ).add_to(m)
+                  folium.CircleMarker(
+                    location=[row['LAT'], row['LNG']],
+                     radius=6,
+                     color="#B71C1C",       # 換成深紅色外框（或用 "red"）
+                     weight=1,              # 外框線條粗細，調細一點更像圓點
+                     fill=True,
+                     fill_color="#E53935",  # 換成亮紅色填滿（或用 "red"）
+                     fill_opacity=0.85,     # 提高一點透明度讓顏色更飽和
+                     popup=folium.Popup(popup_html, max_width=250),
+                     tooltip=folium.Tooltip(label_val, permanent=False)
+                    ).add_to(m)
             
             # 渲染地圖
             st_folium(m, width="100%", height=550, returned_objects=[])

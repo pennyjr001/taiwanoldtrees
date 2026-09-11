@@ -15,7 +15,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🌳 臺灣老樹物種空間分布 (Python 互動版)")
+st.title("🌳 臺灣老樹物種空間分布")
 
 # 2. 側邊欄：檔案上傳
 with st.sidebar:

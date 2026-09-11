@@ -15,7 +15,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("🌳 臺灣老樹物種空間分布")
+st.title("🌳 臺灣老樹物種空間分布 (Python 互動版)")
 
 # 2. 側邊欄：檔案上傳
 with st.sidebar:
@@ -143,17 +143,10 @@ else:
             # ... 這裡省略你原本寫的點位 for 迴圈 (請保留你原本的點位程式碼) ...
             for idx, row in df_filtered.iterrows():
                 label_val = str(row[chosen_id_col]) if chosen_id_col else str(idx + 1)
-                  folium.CircleMarker(
-                    location=[row['LAT'], row['LNG']],
-                     radius=6,
-                     color="#B71C1C",       # 換成深紅色外框（或用 "red"）
-                     weight=1,              # 外框線條粗細，調細一點更像圓點
-                     fill=True,
-                     fill_color="#E53935",  # 換成亮紅色填滿（或用 "red"）
-                     fill_opacity=0.85,     # 提高一點透明度讓顏色更飽和
-                     popup=folium.Popup(popup_html, max_width=250),
-                     tooltip=folium.Tooltip(label_val, permanent=False)
-                  ).add_to(m)
+                folium.CircleMarker(
+                    location=[row['LAT'], row['LNG']], radius=6, color="#43A047", fill=True,
+                    tooltip=folium.Tooltip(label_val)
+                ).add_to(m)
             
             # 渲染地圖
             st_folium(m, width="100%", height=550, returned_objects=[])
@@ -174,6 +167,7 @@ else:
             with col_h:
                 img_height = st.number_input("圖片高度 (px)", value=800, min_value=300, max_value=3000, step=100)
                 
+            # 點擊按鈕開始啟動 Selenium 背景截圖
             if st.button("🔄 產生高解析度地圖圖片（請稍候約 5 秒）", type="primary"):
                 with st.spinner("⏳ 正在啟動背景瀏覽器進行高解析度截圖..."):
                     try:
@@ -181,44 +175,39 @@ else:
                         import time
                         from selenium import webdriver
                         from selenium.webdriver.chrome.service import Service
+                        from webdriver_manager.chrome import ChromeDriverManager
                         
+                        # 1. 將目前的 Folium 地圖存成暫存的 HTML 檔案
                         tmp_html = "temp_map.html"
                         m.save(tmp_html)
                         
+                        # 2. 設定 Chrome 無頭瀏覽器 (不顯示視窗)
                         options = webdriver.ChromeOptions()
-                        options.add_argument('--headless')
+                        options.add_argument('--headless') # 背景執行
                         options.add_argument('--no-sandbox')
                         options.add_argument('--disable-dev-shm-usage')
-                        options.add_argument('--disable-gpu')
+                        # 設定瀏覽器視窗大小，這會決定截圖出來的解析度大小！
                         options.add_argument(f'--window-size={img_width},{img_height}')
                         
-                        # ── 👑 雲端 Linux 與 本地 Windows 環境自動雙棲適配 ──
-                        # 檢查是否在 Streamlit Cloud (Linux) 運作，且有系統自帶的 Chromium
-                        if os.path.exists("/usr/bin/chromium"):
-                            options.binary_location = "/usr/bin/chromium"
-                            
-                        if os.path.exists("/usr/bin/chromedriver"):
-                            # 雲端直接使用 packages.txt 裝好的系統驅動
-                            service = Service("/usr/bin/chromedriver")
-                        else:
-                            # 如果在自己電腦 (Windows)，才動態載入 webdriver-manager
-                            from webdriver_manager.chrome import ChromeDriverManager
-                            service = Service(ChromeDriverManager().install())
-                        
-                        # 啟動瀏覽器
+                        # 3. 啟動 Chrome
+                        service = Service(ChromeDriverManager().install())
                         driver = webdriver.Chrome(service=service, options=options)
                         
+                        # 4. 打開地圖檔案並等待 JavaScript 渲染完成
                         abs_path = os.path.abspath(tmp_html)
                         driver.get(f"file:///{abs_path}")
-                        time.sleep(4) # 給雲端多一點緩衝時間載入 OSM 地圖 tiles
+                        time.sleep(3) # 留 3 秒給地圖動畫與點位載入
                         
+                        # 5. 進行截圖並儲存至 Session 記憶體
                         img_path = "map_output.png"
                         driver.save_screenshot(img_path)
-                        driver.quit()
                         
+                        # 關閉瀏覽器與刪除暫存檔
+                        driver.quit()
                         if os.path.exists(tmp_html):
                             os.remove(tmp_html)
                             
+                        # 讀取圖片二進位資料供下載按鈕使用
                         with open(img_path, "rb") as file:
                             st.session_state.map_img_bytes = file.read()
                             
@@ -264,3 +253,4 @@ else:
             
             # 顯示表格
             st.dataframe(df_filtered, use_container_width=True)
+

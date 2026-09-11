@@ -1,0 +1,8 @@
+streamlit
+pandas
+openpyxl
+pyproj
+folium
+streamlit-folium
+selenium
+webdriver-manager

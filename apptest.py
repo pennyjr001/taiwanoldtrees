@@ -144,7 +144,7 @@ else:
             for idx, row in df_filtered.iterrows():
                 label_val = str(row[chosen_id_col]) if chosen_id_col else str(idx + 1)
                 folium.CircleMarker(
-                    location=[row['LAT'], row['LNG']], radius=6, color="#43A047", fill=True,
+                    location=[row['LAT'], row['LNG']], radius=6, color="#B71C1C", fill=True,
                     tooltip=folium.Tooltip(label_val)
                 ).add_to(m)
             
